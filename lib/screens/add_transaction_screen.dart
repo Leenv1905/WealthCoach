@@ -15,7 +15,7 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _amountController = TextEditingController(text: "0.00");
   TransactionType _type = TransactionType.expense;
-  String? _category; // ? là cho phép null
+  String? _category;
   DateTime _selectedDate = DateTime.now();
   final _noteController = TextEditingController();
 
@@ -67,7 +67,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     controller: _amountController,
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-                    decoration: const InputDecoration(border: InputBorder.none, hintText: "0.00"),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: "0.00",
+                    ),
                   ),
                 ),
               ],
@@ -75,13 +78,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
             const SizedBox(height: 24),
 
-            // Income / Expense
+            // Income / Expense Toggle
             Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+              ),
               child: Row(
                 children: [
-                  Expanded(child: _buildToggle("Income", _type == TransactionType.income, () => setState(() => _type = TransactionType.income))),
-                  Expanded(child: _buildToggle("Expense", _type == TransactionType.expense, () => setState(() => _type = TransactionType.expense))),
+                  Expanded(
+                    child: _buildToggle(
+                      "Income",
+                      _type == TransactionType.income,
+                          () => setState(() => _type = TransactionType.income),
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildToggle(
+                      "Expense",
+                      _type == TransactionType.expense,
+                          () => setState(() => _type = TransactionType.expense),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -138,7 +156,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
             const SizedBox(height: 24),
 
-            // Wallet & Tax
+            // Wallet & Tax bản demo
             Row(
               children: [
                 Expanded(child: _buildTag("Personal", Icons.wallet, Colors.green)),
@@ -158,7 +176,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   backgroundColor: AppTheme.primary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text("Save Transaction", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "Save Transaction",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -191,12 +212,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget _buildTag(String label, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -204,7 +231,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-              Text(label == "Personal" ? "WALLET" : "TAX", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              Text(
+                label == "Personal" ? "WALLET" : "TAX",
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
             ],
           ),
         ],
@@ -214,17 +244,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   void _saveTransaction() {
     if (_category == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chọn danh mục")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng chọn danh mục")),
+      );
       return;
     }
 
     final amountText = _amountController.text.trim();
-    if (amountText.isEmpty || double.tryParse(amountText) == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng nhập số tiền hợp lệ")));
+    if (amountText.isEmpty || double.tryParse(amountText) == null || double.parse(amountText) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng nhập số tiền hợp lệ")),
+      );
       return;
     }
 
     final provider = Provider.of<TransactionProvider>(context, listen: false);
+
     final newTx = Transaction(
       id: const Uuid().v4(),
       amount: double.parse(amountText),
@@ -232,11 +267,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       category: _category!,
       date: _selectedDate,
       note: _noteController.text,
-      icon: Icons.attach_money,
+      iconCode: _getIconForCategory(_category!).codePoint,
     );
 
     provider.addTransaction(newTx);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Giao dịch đã được lưu!")));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Giao dịch đã được lưu!")),
+    );
+  }
+
+  IconData _getIconForCategory(String category) {
+    switch (category) {
+      case 'Ăn uống':
+        return Icons.restaurant;
+      case 'Lương':
+        return Icons.payments;
+      case 'Di chuyển':
+        return Icons.directions_car;
+      case 'Thuê nhà':
+        return Icons.home;
+      case 'Cafe':
+        return Icons.coffee;
+      case 'Mua sắm':
+        return Icons.shopping_basket;
+      case 'Xăng dầu':
+        return Icons.local_gas_station;
+      case 'Điện nước':
+        return Icons.electric_bolt;
+      default:
+        return Icons.attach_money;
+    }
   }
 }

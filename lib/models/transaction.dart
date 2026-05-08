@@ -1,17 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 
-enum TransactionType { income, expense }
+part 'transaction.g.dart';
 
+@HiveType(typeId: 0)
 class Transaction {
+  @HiveField(0)
   final String id;
+
+  @HiveField(1)
   final double amount;
+
+  @HiveField(2)
   final TransactionType type;
+
+  @HiveField(3)
   final String category;
+
+  @HiveField(4)
   final DateTime date;
+
+  @HiveField(5)
   final String note;
-  final IconData icon;
+
+  @HiveField(6)
+  final int iconCode;
 
   Transaction({
     required this.id,
@@ -20,8 +35,10 @@ class Transaction {
     required this.category,
     required this.date,
     this.note = '',
-    required this.icon,
+    required this.iconCode,
   });
+  // Getter để lấy IconData từ iconCode
+  IconData get icon => IconData(iconCode, fontFamily: 'MaterialIcons');
 
   String get formattedAmount => type == TransactionType.income
       ? '+${amount.toStringAsFixed(2)}'
@@ -30,4 +47,12 @@ class Transaction {
   Color get color => type == TransactionType.income ? AppTheme.primary : AppTheme.secondary;
 
   String get formattedDate => DateFormat('MMM d, yyyy').format(date);
+}
+
+@HiveType(typeId: 1)
+enum TransactionType {
+  @HiveField(0)
+  income,
+  @HiveField(1)
+  expense,
 }

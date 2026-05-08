@@ -1,13 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'providers/transaction_provider.dart';
+import 'repositories/transaction_repository.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/transactions_screen.dart';
 import 'screens/add_transaction_screen.dart';
+import 'models/transaction.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo Hive
+  await Hive.initFlutter();
+  Hive.registerAdapter(TransactionAdapter());
+  Hive.registerAdapter(TransactionTypeAdapter());
+
+  // Khởi tạo Repository
+  final repo = TransactionRepository();
+  await repo.init();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => TransactionProvider()..loadTransactions(),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -15,26 +38,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => TransactionProvider()),
-      ],
-      child: MaterialApp(
-        title: 'WealthCoach',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const MainScreen(),
-          '/transactions': (context) => const TransactionsScreen(),
-          '/add': (context) => const AddTransactionScreen(),
-        },
-      ),
+    return MaterialApp(
+      title: 'WealthCoach',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const MainScreen(),
+        '/transactions': (context) => const TransactionsScreen(),
+        '/add': (context) => const AddTransactionScreen(),
+      },
     );
   }
 }
 
-// Bottom Navigation
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -49,11 +66,8 @@ class _MainScreenState extends State<MainScreen> {
     const DashboardScreen(),
     const TransactionsScreen(),
     const Center(
-      child: Text(
-        "Insights Screen\n(Đang phát triển)",
-        style: TextStyle(fontSize: 20),
-        textAlign: TextAlign.center,
-      ),
+      child: Text("Insights\n(Coming Soon)",
+          style: TextStyle(fontSize: 24), textAlign: TextAlign.center),
     ),
   ];
 
@@ -69,21 +83,11 @@ class _MainScreenState extends State<MainScreen> {
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'Transactions',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics),
-            label: 'Insights',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Transactions'),
+          BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Insights'),
         ],
       ),
-      // FAB (Nút thêm) nằm bên phải, không đè tab
       floatingActionButton: (_currentIndex == 0 || _currentIndex == 1)
           ? FloatingActionButton(
         onPressed: () => Navigator.pushNamed(context, '/add'),
@@ -91,7 +95,7 @@ class _MainScreenState extends State<MainScreen> {
         child: const Icon(Icons.add, size: 32),
       )
           : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat, // Vị trí bên phải
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
