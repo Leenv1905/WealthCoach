@@ -20,6 +20,11 @@ class TransactionRepository {
     await box.put(transaction.id, transaction);
   }
 
+  Future<void> update(Transaction transaction) async {
+    final box = Hive.box<Transaction>(_boxName);
+    await box.put(transaction.id, transaction);
+  }
+
   Future<void> delete(String id) async {
     final box = Hive.box<Transaction>(_boxName);
     await box.delete(id);

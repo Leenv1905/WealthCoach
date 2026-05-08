@@ -3,6 +3,7 @@ import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../providers/transaction_provider.dart';
 import 'package:provider/provider.dart';
+import '../screens/add_transaction_screen.dart';
 
 class TransactionItem extends StatelessWidget {
   final Transaction transaction;
@@ -14,46 +15,34 @@ class TransactionItem extends StatelessWidget {
 
     return Dismissible(
       key: Key(transaction.id),
-      direction: DismissDirection.endToStart, // Vuốt từ phải sang trái để xóa giao dịch
-      background: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
+      direction: DismissDirection.horizontal,
+
+      // Vuốt sang trái = Xóa
+      background: _buildDismissBackground(Colors.red, Icons.delete, Alignment.centerRight),
+
+      // Vuốt sang phải = Chỉnh sửa
+      secondaryBackground: _buildDismissBackground(Colors.blue, Icons.edit, Alignment.centerLeft),
+
       confirmDismiss: (direction) async {
-        return await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Xóa giao dịch?"),
-            content: Text("Bạn có chắc muốn xóa giao dịch ${transaction.category}?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Hủy"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text("Xóa"),
-              ),
-            ],
-          ),
-        );
+        if (direction == DismissDirection.endToStart) {
+          // Xóa
+          return await _showDeleteConfirm(context);
+        } else {
+          // Chỉnh sửa
+          _navigateToEdit(context);
+          return false; // Không dismiss khi edit
+        }
       },
+
       onDismissed: (direction) {
-        provider.deleteTransaction(transaction.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Đã xóa ${transaction.category}"),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (direction == DismissDirection.endToStart) {
+          provider.deleteTransaction(transaction.id);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Đã xóa ${transaction.category}")),
+          );
+        }
       },
+
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -61,11 +50,7 @@ class TransactionItem extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 4)),
           ],
         ),
         child: Row(
@@ -86,14 +71,8 @@ class TransactionItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    transaction.category,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Text(
-                    transaction.formattedDate,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(transaction.category, style: Theme.of(context).textTheme.titleMedium),
+                  Text(transaction.formattedDate, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ),
             ),
@@ -107,6 +86,46 @@ class TransactionItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDismissBackground(Color color, IconData icon, Alignment alignment) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Icon(icon, color: Colors.white),
+    );
+  }
+
+  Future<bool> _showDeleteConfirm(BuildContext context) async {
+    return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xóa giao dịch?"),
+        content: Text("Bạn có chắc muốn xóa '${transaction.category}'?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Hủy")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Xóa"),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  void _navigateToEdit(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddTransactionScreen(transactionToEdit: transaction),
       ),
     );
   }
