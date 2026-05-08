@@ -174,6 +174,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 onPressed: _saveTransaction,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,  // Maù chữ trắng
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: const Text(
