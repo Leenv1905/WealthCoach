@@ -6,20 +6,44 @@ class TransactionProvider extends ChangeNotifier {
   final TransactionRepository _repository = TransactionRepository();
   List<Transaction> _transactions = [];
 
+  // Lọc theo tháng
+  DateTime _currentFilterMonth = DateTime.now();
+
   List<Transaction> get transactions => _transactions;
 
-  double get totalBalance => _transactions.fold(
-    0,
-        (sum, t) => sum + (t.type == TransactionType.income ? t.amount : -t.amount),
-  );
+  DateTime get currentFilterMonth => _currentFilterMonth;
 
-  double get totalIncome => _transactions
-      .where((t) => t.type == TransactionType.income)
-      .fold(0.0, (sum, t) => sum + t.amount);
+  void setFilterMonth(DateTime month) {
+    _currentFilterMonth = DateTime(month.year, month.month);
+    notifyListeners();
+  }
 
-  double get totalExpense => _transactions
-      .where((t) => t.type == TransactionType.expense)
-      .fold(0.0, (sum, t) => sum + t.amount);
+  // Lấy danh sách theo tháng hiện tại
+  List<Transaction> get filteredTransactions {
+    return _transactions.where((t) {
+      return t.date.year == _currentFilterMonth.year &&
+          t.date.month == _currentFilterMonth.month;
+    }).toList();
+  }
+
+  double get totalBalance {
+    return filteredTransactions.fold(
+      0,
+          (sum, t) => sum + (t.type == TransactionType.income ? t.amount : -t.amount),
+    );
+  }
+
+  double get totalIncome {
+    return filteredTransactions
+        .where((t) => t.type == TransactionType.income)
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
+
+  double get totalExpense {
+    return filteredTransactions
+        .where((t) => t.type == TransactionType.expense)
+        .fold(0.0, (sum, t) => sum + t.amount);
+  }
 
   Future<void> loadTransactions() async {
     _transactions = await _repository.getAll();

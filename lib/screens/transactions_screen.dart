@@ -14,22 +14,22 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  String _filter = "All"; // All, Income, Expense
+  String _typeFilter = "All"; // All, Income, Expense
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TransactionProvider>(context);
-    final now = DateTime.now();
 
-    // Lọc theo Income/Expense
-    var filtered = provider.transactions;
-    if (_filter == "Income") {
+    // Lọc theo loại (Income/Expense)
+    var filtered = provider.filteredTransactions;
+    if (_typeFilter == "Income") {
       filtered = filtered.where((t) => t.type == TransactionType.income).toList();
-    } else if (_filter == "Expense") {
+    } else if (_typeFilter == "Expense") {
       filtered = filtered.where((t) => t.type == TransactionType.expense).toList();
     }
 
     // Nhóm theo ngày
+    final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
 
@@ -37,9 +37,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final yesterdayTx = filtered.where((t) => _isSameDay(t.date, yesterday)).toList();
     final olderTx = filtered.where((t) =>
     !_isSameDay(t.date, today) && !_isSameDay(t.date, yesterday)).toList();
-
-    // Monthly Outlook (tháng hiện tại)
-    final monthlyBalance = _calculateMonthlyBalance(provider.transactions, now);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -51,55 +48,29 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Filter Chips
+          // Lọc theo tháng
+          _buildMonthFilter(context, provider),
+
+          const SizedBox(height: 16),
+
+          // Loại giao dịch
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildFilterChip("All", _filter == "All"),
+                _buildTypeChip("All", _typeFilter == "All"),
                 const SizedBox(width: 8),
-                _buildFilterChip("Income", _filter == "Income"),
+                _buildTypeChip("Income", _typeFilter == "Income"),
                 const SizedBox(width: 8),
-                _buildFilterChip("Expense", _filter == "Expense"),
+                _buildTypeChip("Expense", _typeFilter == "Expense"),
               ],
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // Monthly Outlook
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppTheme.primary,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("MONTHLY OUTLOOK",
-                    style: TextStyle(color: Colors.white70, fontSize: 14)),
-                const SizedBox(height: 8),
-                Text(
-                  "\$${monthlyBalance.toStringAsFixed(2)}",
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Row(
-                  children: [
-                    Icon(Icons.trending_up, color: Colors.white, size: 18),
-                    SizedBox(width: 6),
-                    Text("12% more than last month",
-                        style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          // Monthly Outlook, phần này cần cải thiện để thể hiện dữ liệu trực quan hơn
+          _buildMonthlyOutlook(provider),
 
           const SizedBox(height: 32),
 
@@ -134,26 +105,95 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+  // ==================== MONTH FILTER ====================
+  Widget _buildMonthFilter(BuildContext context, TransactionProvider provider) {
+    final monthFormat = DateFormat('MMMM yyyy');
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          monthFormat.format(provider.currentFilterMonth),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: () {
+                final newMonth = DateTime(
+                  provider.currentFilterMonth.year,
+                  provider.currentFilterMonth.month - 1,
+                );
+                provider.setFilterMonth(newMonth);
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: () {
+                final newMonth = DateTime(
+                  provider.currentFilterMonth.year,
+                  provider.currentFilterMonth.month + 1,
+                );
+                provider.setFilterMonth(newMonth);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
-  double _calculateMonthlyBalance(List<Transaction> transactions, DateTime now) {
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    return transactions
-        .where((t) => t.date.isAfter(startOfMonth.subtract(const Duration(days: 1))))
-        .fold(0.0, (sum, t) => sum + (t.type == TransactionType.income ? t.amount : -t.amount));
-  }
-
-  Widget _buildFilterChip(String label, bool selected) {
+  // ==================== TYPE FILTER ====================
+  Widget _buildTypeChip(String label, bool selected) {
     return FilterChip(
       label: Text(label),
       selected: selected,
-      onSelected: (value) => setState(() => _filter = label),
+      onSelected: (value) => setState(() => _typeFilter = label),
       backgroundColor: Colors.white,
       selectedColor: AppTheme.primary,
       labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
       elevation: 1,
     );
+  }
+
+  // ==================== MONTHLY OUTLOOK ====================
+  Widget _buildMonthlyOutlook(TransactionProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.primary,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("MONTHLY OUTLOOK",
+              style: TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 8),
+          Text(
+            "\$${provider.totalBalance.toStringAsFixed(2)}",
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            children: [
+              Icon(Icons.trending_up, color: Colors.white, size: 18),
+              SizedBox(width: 6),
+              Text("12% more than last month",
+                  style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
